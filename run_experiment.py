@@ -6,21 +6,19 @@ from multiprocessing import Pool, cpu_count
 import os
 
 from anyrl.envs.wrappers.logs import LoggedEnv
-from anyrl.models import MLP
 from anyrl.rollouts import BasicRoller
-from anyrl.spaces import gym_space_distribution, gym_space_vectorizer
+from anyrl.spaces import gym_space_vectorizer
 import gym
 import numpy as np
 import tensorflow as tf
 
-from cma_agent import CMATrainer
+from cma_agent import CMATrainer, ContinuousMLP
 
 # pylint: disable=R0913
 def training_loop(env_id=None,
-                  layers=(8,),
                   timesteps=int(1e6),
                   batch_size=1000,
-                  param_scale=0.1,
+                  param_scale=1,
                   log_file=None):
     """
     Run CMA on the environment.
@@ -29,16 +27,10 @@ def training_loop(env_id=None,
         log_file = os.path.join('results', env_id + '.monitor.csv')
     env = LoggedEnv(gym.make(env_id), log_file)
     with tf.Session() as sess:
-        model = MLP(sess,
-                    gym_space_distribution(env.action_space),
-                    gym_space_vectorizer(env.observation_space),
-                    layers)
+        model = ContinuousMLP(sess, env.action_space, gym_space_vectorizer(env.observation_space))
         roller = BasicRoller(env, model, min_steps=batch_size)
         sess.run(tf.global_variables_initializer())
-        trainer = CMATrainer(sess,
-                             variables=[v for v in tf.trainable_variables()
-                                        if 'critic' not in v.name],
-                             scale=param_scale)
+        trainer = CMATrainer(sess, scale=param_scale)
         steps = 0
         rewards = []
         while steps < timesteps:
