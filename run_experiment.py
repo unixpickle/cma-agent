@@ -16,8 +16,7 @@ from cma_agent import CMATrainer, ContinuousMLP
 
 # pylint: disable=R0913
 def training_loop(env_id=None,
-                  timesteps=int(1e6),
-                  batch_size=1000,
+                  timesteps=int(5e6),
                   param_scale=1,
                   log_file=None):
     """
@@ -28,7 +27,7 @@ def training_loop(env_id=None,
     env = LoggedEnv(gym.make(env_id), log_file)
     with tf.Session() as sess:
         model = ContinuousMLP(sess, env.action_space, gym_space_vectorizer(env.observation_space))
-        roller = BasicRoller(env, model, min_steps=batch_size)
+        roller = BasicRoller(env, model, min_episodes=4, min_steps=500)
         sess.run(tf.global_variables_initializer())
         trainer = CMATrainer(sess, scale=param_scale)
         steps = 0
@@ -53,8 +52,8 @@ if __name__ == '__main__':
         pool.map(run_with_kwargs,
                  [{'env_id': 'InvertedDoublePendulum-v1'},
                   {'env_id': 'InvertedPendulum-v1'},
-                  {'env_id': 'HalfCheetah-v1', 'batch_size': 2000},
+                  {'env_id': 'HalfCheetah-v1'},
                   {'env_id': 'Hopper-v1'},
                   {'env_id': 'Reacher-v1'},
-                  {'env_id': 'Swimmer-v1', 'batch_size': 2000},
-                  {'env_id': 'Walker2d-v1', 'batch_size': 2000}])
+                  {'env_id': 'Swimmer-v1'},
+                  {'env_id': 'Walker2d-v1'}])
